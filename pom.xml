@@ -8,5 +8,11 @@
     <artifactId>multi-paxos</artifactId>
     <version>1.0</version>
 
+    <modules>
+        <module>node</module>
+        <module>client</module>
+        <module>common</module>
+    </modules>
+
 
 </project>
