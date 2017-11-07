@@ -1,7 +1,8 @@
-package iosr.multipaxos.client;
+package iosr.multipaxos.client.controller;
 
 import static java.util.Collections.emptyMap;
 
+import iosr.multipaxos.client.model.TargetAddresses;
 import iosr.multipaxos.common.command.Command;
 import iosr.multipaxos.common.command.GetCommand;
 import iosr.multipaxos.common.command.PutCommand;

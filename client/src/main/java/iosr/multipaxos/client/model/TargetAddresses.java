@@ -1,4 +1,4 @@
-package iosr.multipaxos.client;
+package iosr.multipaxos.client.model;
 
 import java.util.Map;
 

@@ -1,4 +1,6 @@
-package iosr.multipaxos.client;
+package iosr.multipaxos.client.config;
+
+import iosr.multipaxos.client.model.TargetAddresses;
 
 import java.util.Map;
 
@@ -14,7 +16,6 @@ public class ClientConfiguration {
     @Bean
     public TargetAddresses targetAddresses(@Value("${ids}") String ids) {
         ids = ids.replaceAll("localhost", "http://[::1]");
-        System.out.println(ids);
         final Map<String, String> targetIds = Splitter.on(',')
                 .trimResults()
                 .omitEmptyStrings()
