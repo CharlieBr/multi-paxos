@@ -3,7 +3,9 @@ package iosr.multipaxos.client;
 import static java.util.Collections.emptyMap;
 
 import iosr.multipaxos.common.command.Command;
+import iosr.multipaxos.common.command.GetCommand;
 import iosr.multipaxos.common.command.PutCommand;
+import iosr.multipaxos.common.command.RemoveCommand;
 
 import java.util.Map;
 
@@ -37,22 +39,54 @@ public class ClientController {
         }
         final HttpEntity<Command> entity = new HttpEntity<>(new PutCommand(key, value));
         final ResponseEntity response = executeRequest(HttpMethod.PUT, entity, DEFAULT_LEADER_ID);
-        if(HttpStatus.TEMPORARY_REDIRECT.equals(response.getStatusCode())) {
-            return processRedirectResponse(entity, response);
+        if(isRedirectResponse(response)) {
+            return processRedirectResponse(HttpMethod.PUT, entity, response);
         }
         return response;
     }
-    
-    private Object processRedirectResponse(final HttpEntity<Command> entity, final ResponseEntity response) {
+
+    @RequestMapping(method = RequestMethod.GET)
+    public Object get(@RequestParam("key") final String key) {
+        if(Strings.isNullOrEmpty(key)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        final HttpEntity<Command> entity = new HttpEntity<>(new GetCommand(key));
+        final ResponseEntity response = executeRequest(HttpMethod.GET, entity, DEFAULT_LEADER_ID);
+        if(isRedirectResponse(response)) {
+            return processRedirectResponse(HttpMethod.GET, entity, response);
+        }
+        return response;
+    }
+
+    @RequestMapping(method = RequestMethod.DELETE)
+    public Object delete(@RequestParam("key") final String key) {
+        if(Strings.isNullOrEmpty(key)) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        final HttpEntity<Command> entity = new HttpEntity<>(new RemoveCommand(key));
+        final ResponseEntity response = executeRequest(HttpMethod.DELETE, entity, DEFAULT_LEADER_ID);
+        if(isRedirectResponse(response)) {
+            return processRedirectResponse(HttpMethod.DELETE, entity, response);
+        }
+        return response;
+    }
+
+    private static boolean isRedirectResponse(final ResponseEntity response) {
+        return HttpStatus.TEMPORARY_REDIRECT.equals(response.getStatusCode());
+    }
+
+    private Object processRedirectResponse(final HttpMethod method,
+                                           final HttpEntity<Command> entity,
+                                           final ResponseEntity response) {
         LOGGER.info("Redirecting ... ");
         final Map<String, Integer> responseBody = (Map<String, Integer>) response.getBody();
         final Integer leaderId = responseBody.get("leaderId");
-        return executeRequest(HttpMethod.PUT, entity, leaderId.toString());
+        return executeRequest(method, entity, leaderId.toString());
     }
 
     private ResponseEntity executeRequest(final HttpMethod method,
-                                         final HttpEntity<Command> entity,
-                                         final String leaderId) {
+                                          final HttpEntity<Command> entity,
+                                          final String leaderId) {
         final String targetUrl = this.targetAddresses.getTargetAddressById(leaderId);
         LOGGER.info("Execute " + method.name() + " request to: " + targetUrl);
         return new RestTemplate().exchange(targetUrl, method, entity, Object.class, emptyMap());
