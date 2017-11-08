@@ -11,7 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,15 +62,14 @@ public class StoreController {
         return new ResponseEntity<>(result, HttpStatus.NO_CONTENT);
     }
 
-    @RequestMapping(value = "/{key}", method = RequestMethod.GET)
-    public Object get(@PathVariable(value="key") String key) {
-        LOG.info("Received GET command: " + key);
+    @RequestMapping(method = RequestMethod.POST)
+    public Object get(@RequestBody GetCommand getCommand) {
+        LOG.info("Received GET command: " + getCommand.getKey());
 
         if (!multiPaxosInfoManager.isLeader()) {
             return prepareRedirectResponse();
         }
 
-        GetCommand getCommand = new GetCommand(key);
         Object result = multiPaxosHandler.executeGetCommand(getCommand);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }

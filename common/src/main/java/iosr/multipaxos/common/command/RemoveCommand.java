@@ -7,12 +7,15 @@ public class RemoveCommand implements Command {
 
     private final CommandType commandType = CommandType.REMOVE;
 
+    private String id;
+
     private Object key;
 
     public RemoveCommand() {
     }
 
-    public RemoveCommand(Object key) {
+    public RemoveCommand(String id, Object key) {
+        this.id = id;
         this.key = key;
     }
 
@@ -23,5 +26,10 @@ public class RemoveCommand implements Command {
     @Override
     public CommandType getCommandType() {
         return commandType;
+    }
+
+    @Override
+    public String getId() {
+        return id;
     }
 }
