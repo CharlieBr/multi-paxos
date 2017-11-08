@@ -8,6 +8,8 @@
     <artifactId>multi-paxos</artifactId>
     <version>1.0</version>
 
+    <packaging>pom</packaging>
+
     <modules>
         <module>node</module>
         <module>client</module>
