@@ -27,18 +27,18 @@ public class CommandDeserializer extends JsonDeserializer<Command> {
         TreeNode treeNode = jsonParser.getCodec().readTree(jsonParser);
         String commandType = objectMapper.treeToValue(treeNode.get("commandType"), String.class);
         if (commandType.equals("PUT")) {
-            String id = objectMapper.treeToValue(treeNode.get("id"), String.class);
+            int id = objectMapper.treeToValue(treeNode.get("id"), Integer.class);
             Object key = objectMapper.treeToValue(treeNode.get("key"), Object.class);
             Object value = objectMapper.treeToValue(treeNode.get("value"), Object.class);
 
             return new PutCommand(id, key, value);
         } else if (commandType.equals("REMOVE")) {
-            String id = objectMapper.treeToValue(treeNode.get("id"), String.class);
+            int id = objectMapper.treeToValue(treeNode.get("id"), Integer.class);
             Object key = objectMapper.treeToValue(treeNode.get("key"), Object.class);
 
             return new RemoveCommand(id, key);
         } else if (commandType.equals("GET")) {
-            String id = objectMapper.treeToValue(treeNode.get("id"), String.class);
+            int id = objectMapper.treeToValue(treeNode.get("id"), Integer.class);
             Object key = objectMapper.treeToValue(treeNode.get("key"), Object.class);
 
             return new GetCommand(id, key);

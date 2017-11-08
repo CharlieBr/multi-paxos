@@ -6,5 +6,5 @@ package iosr.multipaxos.common.command;
 public interface Command {
     CommandType getCommandType();
 
-    String getId();
+    int getId();
 }

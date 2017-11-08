@@ -1,5 +1,6 @@
 package iosr.multipaxos.node.controller;
 
+import iosr.multipaxos.common.command.CommandResponse;
 import iosr.multipaxos.common.command.GetCommand;
 import iosr.multipaxos.common.command.PutCommand;
 import iosr.multipaxos.common.command.RemoveCommand;
@@ -47,7 +48,7 @@ public class StoreController {
         }
 
         Object result = multiPaxosHandler.executePutCommand(putCommand);
-        return new ResponseEntity<>(result, HttpStatus.OK);
+        return new ResponseEntity<>(new CommandResponse(result), HttpStatus.OK);
     }
 
     @RequestMapping(method = RequestMethod.DELETE)
@@ -59,7 +60,7 @@ public class StoreController {
         }
 
         Object result = multiPaxosHandler.executeRemoveCommand(removeCommand);
-        return new ResponseEntity<>(result, HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(new CommandResponse(result), HttpStatus.NO_CONTENT);
     }
 
     @RequestMapping(method = RequestMethod.POST)
@@ -71,7 +72,7 @@ public class StoreController {
         }
 
         Object result = multiPaxosHandler.executeGetCommand(getCommand);
-        return new ResponseEntity<>(result, HttpStatus.OK);
+        return new ResponseEntity<>(new CommandResponse(result), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.GET)
