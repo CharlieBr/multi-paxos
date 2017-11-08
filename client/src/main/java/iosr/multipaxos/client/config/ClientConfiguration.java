@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
 import com.google.common.base.Splitter;
 
@@ -22,5 +23,10 @@ public class ClientConfiguration {
                 .withKeyValueSeparator('_')
                 .split(ids);
         return new TargetAddresses(targetIds);
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

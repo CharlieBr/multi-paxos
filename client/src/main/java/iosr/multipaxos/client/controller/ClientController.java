@@ -33,6 +33,9 @@ public class ClientController {
     @Autowired
     private TargetAddresses targetAddresses;
 
+    @Autowired
+    private RestTemplate restTemplate;
+
     @RequestMapping(method = RequestMethod.PUT)
     public Object put(@RequestParam("key") final String key, @RequestParam("value") final Integer value) {
         if(Strings.isNullOrEmpty(key) || value == null) {
@@ -40,9 +43,6 @@ public class ClientController {
         }
         final HttpEntity<Command> entity = new HttpEntity<>(new PutCommand(key, value));
         final ResponseEntity response = executeRequest(HttpMethod.PUT, entity, DEFAULT_LEADER_ID);
-        if(isRedirectResponse(response)) {
-            return processRedirectResponse(HttpMethod.PUT, entity, response);
-        }
         return response;
     }
 
@@ -53,9 +53,6 @@ public class ClientController {
         }
         final HttpEntity<Command> entity = new HttpEntity<>(new GetCommand(key));
         final ResponseEntity response = executeRequest(HttpMethod.GET, entity, DEFAULT_LEADER_ID);
-        if(isRedirectResponse(response)) {
-            return processRedirectResponse(HttpMethod.GET, entity, response);
-        }
         return response;
     }
 
@@ -66,9 +63,6 @@ public class ClientController {
         }
         final HttpEntity<Command> entity = new HttpEntity<>(new RemoveCommand(key));
         final ResponseEntity response = executeRequest(HttpMethod.DELETE, entity, DEFAULT_LEADER_ID);
-        if(isRedirectResponse(response)) {
-            return processRedirectResponse(HttpMethod.DELETE, entity, response);
-        }
         return response;
     }
 
@@ -76,7 +70,7 @@ public class ClientController {
         return HttpStatus.TEMPORARY_REDIRECT.equals(response.getStatusCode());
     }
 
-    private Object processRedirectResponse(final HttpMethod method,
+    private ResponseEntity processRedirectResponse(final HttpMethod method,
                                            final HttpEntity<Command> entity,
                                            final ResponseEntity response) {
         LOGGER.info("Redirecting ... ");
@@ -90,6 +84,10 @@ public class ClientController {
                                           final String leaderId) {
         final String targetUrl = this.targetAddresses.getTargetAddressById(leaderId);
         LOGGER.info("Execute " + method.name() + " request to: " + targetUrl);
-        return new RestTemplate().exchange(targetUrl, method, entity, Object.class, emptyMap());
+        ResponseEntity response = this.restTemplate.exchange(targetUrl, method, entity, Object.class, emptyMap());
+        if(isRedirectResponse(response)) {
+             response = processRedirectResponse(method, entity, response);
+        }
+        return response;
     }
 }
