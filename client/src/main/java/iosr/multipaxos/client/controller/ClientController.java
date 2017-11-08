@@ -8,8 +8,10 @@ import iosr.multipaxos.common.command.GetCommand;
 import iosr.multipaxos.common.command.PutCommand;
 import iosr.multipaxos.common.command.RemoveCommand;
 
+import java.net.ConnectException;
 import java.util.Map;
 
+import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,20 +23,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.google.common.base.Strings;
 
 @RestController("/client")
 public class ClientController {
-    private static final String DEFAULT_LEADER_ID = "0";
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientController.class);
-
     @Autowired
     private TargetAddresses targetAddresses;
-
     @Autowired
     private RestTemplate restTemplate;
+    private String currentLeader = "0";
 
     @RequestMapping(method = RequestMethod.PUT)
     public Object put(@RequestParam("key") final String key, @RequestParam("value") final Integer value) {
@@ -42,8 +43,7 @@ public class ClientController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         final HttpEntity<Command> entity = new HttpEntity<>(new PutCommand(key, value));
-        final ResponseEntity response = executeRequest(HttpMethod.PUT, entity, DEFAULT_LEADER_ID);
-        return response;
+        return executeRequest(HttpMethod.PUT, entity);
     }
 
     @RequestMapping(method = RequestMethod.GET)
@@ -52,8 +52,7 @@ public class ClientController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         final HttpEntity<Command> entity = new HttpEntity<>(new GetCommand(key));
-        final ResponseEntity response = executeRequest(HttpMethod.GET, entity, DEFAULT_LEADER_ID);
-        return response;
+        return executeRequest(HttpMethod.GET, entity);
     }
 
     @RequestMapping(method = RequestMethod.DELETE)
@@ -62,8 +61,7 @@ public class ClientController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         final HttpEntity<Command> entity = new HttpEntity<>(new RemoveCommand(key));
-        final ResponseEntity response = executeRequest(HttpMethod.DELETE, entity, DEFAULT_LEADER_ID);
-        return response;
+        return executeRequest(HttpMethod.DELETE, entity);
     }
 
     private static boolean isRedirectResponse(final ResponseEntity response) {
@@ -71,23 +69,42 @@ public class ClientController {
     }
 
     private ResponseEntity processRedirectResponse(final HttpMethod method,
-                                           final HttpEntity<Command> entity,
-                                           final ResponseEntity response) {
-        LOGGER.info("Redirecting ... ");
+                                                   final HttpEntity<Command> entity,
+                                                   final ResponseEntity response) {
         final Map<String, Integer> responseBody = (Map<String, Integer>) response.getBody();
-        final Integer leaderId = responseBody.get("leaderId");
-        return executeRequest(method, entity, leaderId.toString());
+        this.currentLeader = responseBody.get("leaderId").toString();
+        LOGGER.info("Redirecting to new leader with id {}", this.currentLeader);
+        return executeRequest(method, entity);
     }
 
     private ResponseEntity executeRequest(final HttpMethod method,
-                                          final HttpEntity<Command> entity,
-                                          final String leaderId) {
-        final String targetUrl = this.targetAddresses.getTargetAddressById(leaderId);
+                                          final HttpEntity<Command> entity) {
+        final String targetUrl = this.targetAddresses.getTargetAddressById(this.currentLeader);
         LOGGER.info("Execute " + method.name() + " request to: " + targetUrl);
-        ResponseEntity response = this.restTemplate.exchange(targetUrl, method, entity, Object.class, emptyMap());
+        ResponseEntity response = getResponse(targetUrl, method, entity);
         if(isRedirectResponse(response)) {
-             response = processRedirectResponse(method, entity, response);
+            response = processRedirectResponse(method, entity, response);
         }
         return response;
+    }
+
+    private ResponseEntity getResponse(final String targetUrl,
+                                       final HttpMethod method,
+                                       final HttpEntity<Command> entity) {
+        try {
+            return this.restTemplate.exchange(targetUrl, method, entity, Object.class, emptyMap());
+        }
+        catch(final RestClientException e) {
+            if(e.getRootCause() instanceof ConnectTimeoutException || e.getRootCause() instanceof ConnectException) {
+                return processTimeout(method, entity);
+            }
+        }
+        return new ResponseEntity<>("Something went wrong! :(", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private ResponseEntity processTimeout(final HttpMethod method, final HttpEntity<Command> entity) {
+        this.currentLeader = this.targetAddresses.getNextTargetAddress(this.currentLeader)
+                .orElseThrow(() -> new RuntimeException("No leader address to choose"));
+        return executeRequest(method, entity);
     }
 }

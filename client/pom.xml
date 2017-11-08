@@ -23,7 +23,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
 		<guava.version>23.0</guava.version>
-		<javax.ws.rs.version>2.1</javax.ws.rs.version>
+		<apache.httpcomponents.version>4.5.3</apache.httpcomponents.version>
 	</properties>
 
 	<dependencies>
@@ -44,9 +44,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>javax.ws.rs</groupId>
-			<artifactId>javax.ws.rs-api</artifactId>
-			<version>${javax.ws.rs.version}</version>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>${apache.httpcomponents.version}</version>
 		</dependency>
 
 		<dependency>
