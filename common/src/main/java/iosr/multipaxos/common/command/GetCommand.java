@@ -7,14 +7,14 @@ public class GetCommand implements Command {
 
     private final CommandType commandType = CommandType.GET;
 
-    private String id;
+    private int id;
 
     private Object key;
 
     public GetCommand() {
     }
 
-    public GetCommand(String id, Object key) {
+    public GetCommand(int id, Object key) {
         this.id = id;
         this.key = key;
     }
@@ -29,12 +29,12 @@ public class GetCommand implements Command {
     }
 
     @Override
-    public String getId() {
+    public int getId() {
         return id;
     }
 
     @Override
-    public Command withIncrementedId(String id) {
+    public Command withIncrementedId(int id) {
         return new GetCommand(id, this.key);
     }
 }

@@ -45,7 +45,7 @@ public class ClientController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         final HttpEntity<Command> entity =
-                new HttpEntity<>(new PutCommand(Integer.toString(this.requestId.get()), key, value));
+                new HttpEntity<>(new PutCommand(this.requestId.get(), key, value));
         return executeRequest(HttpMethod.PUT, entity);
     }
 
@@ -55,7 +55,7 @@ public class ClientController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         final HttpEntity<Command> entity =
-                new HttpEntity<>(new GetCommand(Integer.toString(this.requestId.get()), key));
+                new HttpEntity<>(new GetCommand(this.requestId.get(), key));
         return executeRequest(HttpMethod.POST, entity);
     }
 
@@ -65,14 +65,14 @@ public class ClientController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         final HttpEntity<Command> entity =
-                new HttpEntity<>(new RemoveCommand(Integer.toString(this.requestId.get()), key));
+                new HttpEntity<>(new RemoveCommand(this.requestId.get(), key));
         return executeRequest(HttpMethod.DELETE, entity);
     }
 
     private ResponseEntity executeRequest(final HttpMethod method,
                                           final HttpEntity<Command> entity) {
         final String targetUrl = this.targetAddresses.getTargetAddressById(this.currentLeader);
-        LOGGER.info("Execute " + method.name() + " request #" + this.requestId.get() +" to: " + targetUrl);
+        LOGGER.info("Execute " + method.name() + " request #" + this.requestId.get() + " to: " + targetUrl);
         ResponseEntity response = getResponse(targetUrl, method, incrementRequestId(entity));
         if(isRedirectResponse(response)) {
             response = processRedirectResponse(method, entity, response);
@@ -114,6 +114,6 @@ public class ClientController {
     }
 
     private HttpEntity<Command> incrementRequestId(final HttpEntity<Command> entity) {
-        return new HttpEntity<>(entity.getBody().withIncrementedId(Integer.toString(this.requestId.incrementAndGet())));
+        return new HttpEntity<>(entity.getBody().withIncrementedId(this.requestId.incrementAndGet()));
     }
 }

@@ -7,14 +7,14 @@ public class RemoveCommand implements Command {
 
     private final CommandType commandType = CommandType.REMOVE;
 
-    private String id;
+    private int id;
 
     private Object key;
 
     public RemoveCommand() {
     }
 
-    public RemoveCommand(String id, Object key) {
+    public RemoveCommand(int id, Object key) {
         this.id = id;
         this.key = key;
     }
@@ -29,12 +29,12 @@ public class RemoveCommand implements Command {
     }
 
     @Override
-    public String getId() {
+    public int getId() {
         return id;
     }
 
     @Override
-    public Command withIncrementedId(final String id) {
+    public Command withIncrementedId(final int id) {
         return new RemoveCommand(id, this.key);
     }
 }
