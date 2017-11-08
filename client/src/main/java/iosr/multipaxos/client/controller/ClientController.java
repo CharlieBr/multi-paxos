@@ -10,6 +10,7 @@ import iosr.multipaxos.common.command.RemoveCommand;
 
 import java.net.ConnectException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
@@ -36,23 +37,26 @@ public class ClientController {
     @Autowired
     private RestTemplate restTemplate;
     private String currentLeader = "0";
+    private final AtomicInteger requestId = new AtomicInteger(0);
 
     @RequestMapping(method = RequestMethod.PUT)
     public Object put(@RequestParam("key") final String key, @RequestParam("value") final Integer value) {
         if(Strings.isNullOrEmpty(key) || value == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        final HttpEntity<Command> entity = new HttpEntity<>(new PutCommand(key, value));
+        final HttpEntity<Command> entity =
+                new HttpEntity<>(new PutCommand(Integer.toString(this.requestId.get()), key, value));
         return executeRequest(HttpMethod.PUT, entity);
     }
 
-    @RequestMapping(method = RequestMethod.GET)
-    public Object get(@RequestParam("key") final String key) {
+    @RequestMapping(method = RequestMethod.POST)
+    public Object post(@RequestParam("key") final String key) {
         if(Strings.isNullOrEmpty(key)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        final HttpEntity<Command> entity = new HttpEntity<>(new GetCommand(key));
-        return executeRequest(HttpMethod.GET, entity);
+        final HttpEntity<Command> entity =
+                new HttpEntity<>(new GetCommand(Integer.toString(this.requestId.get()), key));
+        return executeRequest(HttpMethod.POST, entity);
     }
 
     @RequestMapping(method = RequestMethod.DELETE)
@@ -60,8 +64,20 @@ public class ClientController {
         if(Strings.isNullOrEmpty(key)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        final HttpEntity<Command> entity = new HttpEntity<>(new RemoveCommand(key));
+        final HttpEntity<Command> entity =
+                new HttpEntity<>(new RemoveCommand(Integer.toString(this.requestId.get()), key));
         return executeRequest(HttpMethod.DELETE, entity);
+    }
+
+    private ResponseEntity executeRequest(final HttpMethod method,
+                                          final HttpEntity<Command> entity) {
+        final String targetUrl = this.targetAddresses.getTargetAddressById(this.currentLeader);
+        LOGGER.info("Execute " + method.name() + " request #" + this.requestId.get() +" to: " + targetUrl);
+        ResponseEntity response = getResponse(targetUrl, method, incrementRequestId(entity));
+        if(isRedirectResponse(response)) {
+            response = processRedirectResponse(method, entity, response);
+        }
+        return response;
     }
 
     private static boolean isRedirectResponse(final ResponseEntity response) {
@@ -75,17 +91,6 @@ public class ClientController {
         this.currentLeader = responseBody.get("leaderId").toString();
         LOGGER.info("Redirecting to new leader with id {}", this.currentLeader);
         return executeRequest(method, entity);
-    }
-
-    private ResponseEntity executeRequest(final HttpMethod method,
-                                          final HttpEntity<Command> entity) {
-        final String targetUrl = this.targetAddresses.getTargetAddressById(this.currentLeader);
-        LOGGER.info("Execute " + method.name() + " request to: " + targetUrl);
-        ResponseEntity response = getResponse(targetUrl, method, entity);
-        if(isRedirectResponse(response)) {
-            response = processRedirectResponse(method, entity, response);
-        }
-        return response;
     }
 
     private ResponseEntity getResponse(final String targetUrl,
@@ -106,5 +111,9 @@ public class ClientController {
         this.currentLeader = this.targetAddresses.getNextTargetAddress(this.currentLeader)
                 .orElseThrow(() -> new RuntimeException("No leader address to choose"));
         return executeRequest(method, entity);
+    }
+
+    private HttpEntity<Command> incrementRequestId(final HttpEntity<Command> entity) {
+        return new HttpEntity<>(entity.getBody().withIncrementedId(Integer.toString(this.requestId.incrementAndGet())));
     }
 }
