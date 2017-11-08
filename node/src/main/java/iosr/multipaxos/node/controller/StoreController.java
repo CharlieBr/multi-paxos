@@ -5,6 +5,7 @@ import iosr.multipaxos.common.command.PutCommand;
 import iosr.multipaxos.common.command.RemoveCommand;
 import iosr.multipaxos.node.paxos.MultiPaxosHandler;
 import iosr.multipaxos.node.paxos.MultiPaxosInfoManager;
+import iosr.multipaxos.node.store.KeyValueStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,9 @@ public class StoreController {
     @Autowired
     private MultiPaxosInfoManager multiPaxosInfoManager;
 
+    @Autowired
+    private KeyValueStore keyValueStore;
+
 
     @RequestMapping(method = RequestMethod.PUT)
     public Object put(@RequestBody PutCommand putCommand) {
@@ -39,7 +43,7 @@ public class StoreController {
             return prepareRedirectResponse();
         }
 
-        Object result = multiPaxosHandler.executeMultiPaxos(putCommand);
+        Object result = multiPaxosHandler.executePutCommand(putCommand);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -51,8 +55,8 @@ public class StoreController {
             return prepareRedirectResponse();
         }
 
-        Object result = multiPaxosHandler.executeMultiPaxos(removeCommand);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        Object result = multiPaxosHandler.executeRemoveCommand(removeCommand);
+        return new ResponseEntity<>(result, HttpStatus.NO_CONTENT);
     }
 
     @RequestMapping(value = "/{key}", method = RequestMethod.GET)
@@ -64,8 +68,13 @@ public class StoreController {
         }
 
         GetCommand getCommand = new GetCommand(key);
-        Object result = multiPaxosHandler.executeMultiPaxos(getCommand);
+        Object result = multiPaxosHandler.executeGetCommand(getCommand);
         return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/all", method = RequestMethod.GET)
+    public Object getAll() {
+        return keyValueStore.getAll();
     }
 
     private ResponseEntity prepareRedirectResponse() {

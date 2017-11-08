@@ -5,6 +5,8 @@ package iosr.multipaxos.common.command;
  */
 public class GetCommand implements Command {
 
+    private final CommandType commandType = CommandType.GET;
+
     private Object key;
 
     public GetCommand() {
@@ -16,5 +18,10 @@ public class GetCommand implements Command {
 
     public Object getKey() {
         return key;
+    }
+
+    @Override
+    public CommandType getCommandType() {
+        return commandType;
     }
 }

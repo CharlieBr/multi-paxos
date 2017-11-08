@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -42,7 +43,8 @@ public class HeartbeatManager {
     @Scheduled(fixedRateString = "${heartbeat.interval}")
     public void sendHeartbeat() {
         List<NodeAddress> members = nodeConfig.getMembers();
-        members.forEach(m -> messenger.sendHeartbeatMessage(new HeartbeatMessage(nodeConfig.getId()), m));
+        members.forEach(this::sendHeartbeatMessageAsync);
+
     }
 
     @Scheduled(fixedRateString = "#{2 * ${heartbeat.interval}}")
@@ -52,5 +54,15 @@ public class HeartbeatManager {
         Set<Integer> nodeIds = receivedIds.getAndSet(new HashSet<>());
         multiPaxosInfoManager.updateLeaderInfo(nodeIds);
         LOG.info("Leader id: " + multiPaxosInfoManager.getLeaderId());
+    }
+
+    private void sendHeartbeatMessageAsync(NodeAddress nodeAddress) {
+        CompletableFuture.supplyAsync(() -> {
+            messenger.sendHeartbeatMessage(new HeartbeatMessage(nodeConfig.getId()), nodeAddress);
+            return null;
+        }).exceptionally(t -> {
+            LOG.error("Failed to send HEARTBEAT message to " + nodeAddress.getHost() + ":" + nodeAddress.getPort());
+            return null;
+        });
     }
 }

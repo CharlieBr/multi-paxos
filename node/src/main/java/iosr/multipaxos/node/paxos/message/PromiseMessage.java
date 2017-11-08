@@ -1,6 +1,8 @@
 package iosr.multipaxos.node.paxos.message;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import iosr.multipaxos.common.command.Command;
+import iosr.multipaxos.node.communication.CommandDeserializer;
 
 /**
  * Created by Leszek Placzkiewicz on 03.11.17.
@@ -35,6 +37,7 @@ public class PromiseMessage implements Message {
         return acceptedValue;
     }
 
+    @JsonDeserialize(using = CommandDeserializer.class)
     public void setAcceptedValue(Command acceptedValue) {
         this.acceptedValue = acceptedValue;
     }

@@ -5,6 +5,8 @@ package iosr.multipaxos.common.command;
  */
 public class PutCommand implements Command {
 
+    private final CommandType commandType = CommandType.PUT;
+
     private Object key;
     private Object value;
 
@@ -22,5 +24,10 @@ public class PutCommand implements Command {
 
     public Object getValue() {
         return value;
+    }
+
+    @Override
+    public CommandType getCommandType() {
+        return commandType;
     }
 }

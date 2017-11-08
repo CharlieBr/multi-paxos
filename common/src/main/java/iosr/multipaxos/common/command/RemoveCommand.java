@@ -5,6 +5,8 @@ package iosr.multipaxos.common.command;
  */
 public class RemoveCommand implements Command {
 
+    private final CommandType commandType = CommandType.REMOVE;
+
     private Object key;
 
     public RemoveCommand() {
@@ -18,4 +20,8 @@ public class RemoveCommand implements Command {
         return key;
     }
 
+    @Override
+    public CommandType getCommandType() {
+        return commandType;
+    }
 }
