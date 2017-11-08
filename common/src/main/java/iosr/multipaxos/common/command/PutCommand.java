@@ -7,7 +7,7 @@ public class PutCommand implements Command {
 
     private final CommandType commandType = CommandType.PUT;
 
-    private String id;
+    private int id;
 
     private Object key;
     private Object value;
@@ -15,7 +15,7 @@ public class PutCommand implements Command {
     public PutCommand() {
     }
 
-    public PutCommand(String id, Object key, Object value) {
+    public PutCommand(int id, Object key, Object value) {
         this.id = id;
         this.key = key;
         this.value = value;
@@ -35,7 +35,7 @@ public class PutCommand implements Command {
     }
 
     @Override
-    public String getId() {
+    public int getId() {
         return id;
     }
 }
