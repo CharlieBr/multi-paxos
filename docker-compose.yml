@@ -1,0 +1,39 @@
+version: '2'
+services:
+  node1:
+    image: iosr.multipaxos/node
+    restart: always
+    environment:
+      - NODE_ARGS=--id=1 --server.port=8081 --members=node2:8082,node3:8083,node4:8084,node5:8085
+    networks:
+      - iosr
+  node2:
+    image: iosr.multipaxos/node
+    restart: always
+    environment:
+      - NODE_ARGS=--id=2 --server.port=8082 --members=node1:8081,node3:8083,node4:8084,node5:8085
+    networks:
+      - iosr
+  node3:
+    image: iosr.multipaxos/node
+    restart: always
+    environment:
+      - NODE_ARGS=--id=3 --server.port=8083 --members=node1:8081,node2:8082,node4:8084,node5:8085
+    networks:
+      - iosr
+  node4:
+    image: iosr.multipaxos/node
+    restart: always
+    environment:
+      - NODE_ARGS=--id=4 --server.port=8084 --members=node1:8081,node2:8082,node3:8083,node5:8085
+    networks:
+      - iosr
+  node5:
+    image: iosr.multipaxos/node
+    restart: always
+    environment:
+      - NODE_ARGS=--id=5 --server.port=8085 --members=node1:8081,node2:8082,node3:8083,node4:8084
+    networks:
+      - iosr
+networks:
+  iosr:
