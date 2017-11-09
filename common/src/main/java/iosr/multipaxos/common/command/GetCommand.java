@@ -32,4 +32,9 @@ public class GetCommand implements Command {
     public int getId() {
         return id;
     }
+
+    @Override
+    public Command withIncrementedId(int id) {
+        return new GetCommand(id, this.key);
+    }
 }

@@ -7,4 +7,6 @@ public interface Command {
     CommandType getCommandType();
 
     int getId();
+
+    Command withIncrementedId(int id);
 }

@@ -32,4 +32,9 @@ public class RemoveCommand implements Command {
     public int getId() {
         return id;
     }
+
+    @Override
+    public Command withIncrementedId(final int id) {
+        return new RemoveCommand(id, this.key);
+    }
 }

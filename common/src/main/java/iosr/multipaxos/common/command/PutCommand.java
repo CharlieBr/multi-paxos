@@ -38,4 +38,9 @@ public class PutCommand implements Command {
     public int getId() {
         return id;
     }
+
+    @Override
+    public Command withIncrementedId(final int id) {
+        return new PutCommand(id, this.key, this.value);
+    }
 }
