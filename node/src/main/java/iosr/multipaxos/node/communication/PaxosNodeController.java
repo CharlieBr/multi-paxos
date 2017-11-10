@@ -71,25 +71,23 @@ public class PaxosNodeController {
         int proposalNumber = prepareMessage.getProposalNumber();
         int minProposal = multiPaxosInfoManager.getMinProposal();
         int index = prepareMessage.getIndex();
+        int acceptedProposal = multiPaxosInfoManager.getAcceptedProposal(index);
+        Command acceptedValue = multiPaxosInfoManager.getAcceptedValue(index);
+
         if (index > multiPaxosInfoManager.getLastLogIndex()) {
             multiPaxosInfoManager.setLastLogIndex(index);
         }
 
-        int acceptedProposal = multiPaxosInfoManager.getAcceptedProposal(index);
-
-        Command acceptedValue = multiPaxosInfoManager.getAcceptedValue(index);
+        if (proposalNumber > minProposal) {
+            multiPaxosInfoManager.setMinProposal(proposalNumber);
+        }
 
         boolean noMoreAccepted = true;
         for (int idx = index; idx < multiPaxosInfoManager.getLastLogIndex(); idx++) {
-//            if (multiPaxosInfoManager.getAcceptedProposal(idx) == Integer.MAX_VALUE) {
             if (multiPaxosInfoManager.getAcceptedProposal(idx) != 0) {
                 noMoreAccepted = false;
                 break;
             }
-        }
-
-        if (proposalNumber > minProposal) {
-            multiPaxosInfoManager.setMinProposal(proposalNumber);
         }
 
         return new PromiseMessage(acceptedProposal, acceptedValue, noMoreAccepted);
@@ -127,7 +125,6 @@ public class PaxosNodeController {
         multiPaxosInfoManager.setAcceptedValue(index, value);
         multiPaxosInfoManager.setAcceptedProposal(index, Integer.MAX_VALUE);
 
-        //todo - verify correctness
         int lastLogIndex = multiPaxosInfoManager.getLastLogIndex();
         int firstUnchosenIndex = multiPaxosInfoManager.getFirstUnchosenIndex();
         multiPaxosInfoManager.setFirstUnchosenIndex(lastLogIndex + 1);

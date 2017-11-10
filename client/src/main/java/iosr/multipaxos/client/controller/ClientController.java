@@ -1,17 +1,11 @@
 package iosr.multipaxos.client.controller;
 
-import static java.util.Collections.emptyMap;
-
+import com.google.common.base.Strings;
 import iosr.multipaxos.client.model.TargetAddresses;
 import iosr.multipaxos.common.command.Command;
 import iosr.multipaxos.common.command.GetCommand;
 import iosr.multipaxos.common.command.PutCommand;
 import iosr.multipaxos.common.command.RemoveCommand;
-
-import java.net.ConnectException;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.google.common.base.Strings;
+import java.net.ConnectException;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Collections.emptyMap;
 
 @RestController("/client")
 public class ClientController {
@@ -46,7 +44,7 @@ public class ClientController {
         }
         final HttpEntity<Command> entity =
                 new HttpEntity<>(new PutCommand(this.requestId.get(), key, value));
-        return executeRequest(HttpMethod.PUT, entity);
+        return executeRequest(HttpMethod.PUT, entity, currentLeader);
     }
 
     @RequestMapping(method = RequestMethod.POST)
@@ -56,7 +54,7 @@ public class ClientController {
         }
         final HttpEntity<Command> entity =
                 new HttpEntity<>(new GetCommand(this.requestId.get(), key));
-        return executeRequest(HttpMethod.POST, entity);
+        return executeRequest(HttpMethod.POST, entity, currentLeader);
     }
 
     @RequestMapping(method = RequestMethod.DELETE)
@@ -66,12 +64,12 @@ public class ClientController {
         }
         final HttpEntity<Command> entity =
                 new HttpEntity<>(new RemoveCommand(this.requestId.get(), key));
-        return executeRequest(HttpMethod.DELETE, entity);
+        return executeRequest(HttpMethod.DELETE, entity, currentLeader);
     }
 
     private ResponseEntity executeRequest(final HttpMethod method,
-                                          final HttpEntity<Command> entity) {
-        final String targetUrl = this.targetAddresses.getTargetAddressById(this.currentLeader);
+                                          final HttpEntity<Command> entity, String id) {
+        final String targetUrl = this.targetAddresses.getTargetAddressById(id);
         LOGGER.info("Execute " + method.name() + " request #" + this.requestId.get() + " to: " + targetUrl);
         ResponseEntity response = getResponse(targetUrl, method, incrementRequestId(entity));
         if(isRedirectResponse(response)) {
@@ -88,9 +86,18 @@ public class ClientController {
                                                    final HttpEntity<Command> entity,
                                                    final ResponseEntity response) {
         final Map<String, Integer> responseBody = (Map<String, Integer>) response.getBody();
-        this.currentLeader = responseBody.get("leaderId").toString();
+        String newLeader = responseBody.get("leaderId").toString();
+        if (newLeader.equals(currentLeader)) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            this.currentLeader = newLeader;
+        }
         LOGGER.info("Redirecting to new leader with id {}", this.currentLeader);
-        return executeRequest(method, entity);
+        return executeRequest(method, entity, currentLeader);
     }
 
     private ResponseEntity getResponse(final String targetUrl,
@@ -108,9 +115,9 @@ public class ClientController {
     }
 
     private ResponseEntity processTimeout(final HttpMethod method, final HttpEntity<Command> entity) {
-        this.currentLeader = this.targetAddresses.getNextTargetAddress(this.currentLeader)
+        String id = this.targetAddresses.getNextTargetAddress(this.currentLeader)
                 .orElseThrow(() -> new RuntimeException("No leader address to choose"));
-        return executeRequest(method, entity);
+        return executeRequest(method, entity, id);
     }
 
     private HttpEntity<Command> incrementRequestId(final HttpEntity<Command> entity) {

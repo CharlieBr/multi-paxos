@@ -108,26 +108,27 @@ public class MultiPaxosHandler {
         if (highestNumberedAIOptional.isPresent()) {
             AcceptedInfo highestNumberedAI = highestNumberedAIOptional.get();
             if (highestNumberedAI.getAcceptedProposal() != 0) {
-                //TODO - should it replace proposal number with received accepted proposal number?
                 valueToSend.set(highestNumberedAI.getAcceptedValue());
             }
         }
 
         long noMoreAcceptedCount = acceptedInfoSet.stream().filter(AcceptedInfo::isNoMoreAccepted).count();
-        if (noMoreAcceptedCount == acceptedInfoSet.size()) {
+        if (noMoreAcceptedCount >= clusterSize/2) {
             multiPaxosInfoManager.setPrepared(true);
         }
     }
 
-    private void executeAcceptPhase(int proposalNumber, int index, AtomicReference<Command> valueToSend, AtomicBoolean shouldRepeatPaxos) {
+    private void executeAcceptPhase(int proposalNumber, int index, AtomicReference<Command> valueToSend,
+                                    AtomicBoolean shouldRepeatPaxos) {
         List<NodeAddress> members = nodeConfig.getMembers();
         int clusterSize = nodeConfig.getClusterSize();
-        CountDownLatch countDownLatch = new CountDownLatch(clusterSize/2);
-        CountDownLatch cdl = new CountDownLatch(1);
-        members.forEach(member -> sendAcceptMessageAsync(member, proposalNumber, index, valueToSend, countDownLatch, shouldRepeatPaxos, cdl));
+        CountDownLatch acceptPhaseCDL = new CountDownLatch(clusterSize/2);
+        CountDownLatch successPhaseCDL = new CountDownLatch(1);
+        members.forEach(member -> sendAcceptMessageAsync(member, proposalNumber, index, valueToSend, acceptPhaseCDL,
+                shouldRepeatPaxos, successPhaseCDL));
 
         try {
-            countDownLatch.await();
+            acceptPhaseCDL.await();
         } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
         }
@@ -140,12 +141,10 @@ public class MultiPaxosHandler {
         multiPaxosInfoManager.setAcceptedValue(index, valueToSend.get());
 
         multiPaxosInfoManager.setLastLogIndex(index);
-        cdl.countDown();
+        successPhaseCDL.countDown();
     }
 
     private void executeSuccessPhase(NodeAddress nodeAddress, int index, Command value) {
-//        List<NodeAddress> members = nodeConfig.getMembers();
-//        members.forEach(member -> sendSuccessMessageAsync(member, index, value));
         sendSuccessMessageAsync(nodeAddress, index, value);
     }
 
