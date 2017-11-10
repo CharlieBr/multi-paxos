@@ -5,9 +5,60 @@ branches:
   - master
 jdk:
 - oraclejdk8
-script:
+before_install:
 - mvn verify
 install: echo "We believe in Maven."
 cache:
   directories:
-  - "$HOME/.m2"
+  - $HOME/.m2
+script:
+- cd client; zip -r ../client.zip . * ; cd ..
+- cd node; zip -r ../node.zip . * ; cd ..
+- mkdir -p dpl_cd_upload
+- mv client.zip dpl_cd_upload/client.zip
+- mv node.zip dpl_cd_upload/node.zip
+deploy:
+- provider: s3
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
+  local_dir: dpl_cd_upload
+  skip_cleanup: true
+  on:
+    repo: CharlieBr/multi-paxos
+    branch: master
+  bucket: multi-paxos-node
+  region: eu-west-1
+- provider: codedeploy
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
+  bucket: multi-paxos-node
+  key: node.zip
+  bundle_type: zip
+  application: multi-paxos-node
+  deployment_group: multi-paxos-node
+  on:
+    repo: CharlieBr/multi-paxos
+    branch: master
+  region: eu-west-1
+- provider: s3
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
+  local_dir: dpl_cd_upload
+  skip_cleanup: true
+  on:
+    repo: CharlieBr/multi-paxos
+    branch: master
+  bucket: multi-paxos-client
+  region: eu-west-1
+- provider: codedeploy
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
+  bucket: multi-paxos-client
+  key: client.zip
+  bundle_type: zip
+  application: multi-paxos-client
+  deployment_group: multi-paxos-client
+  on:
+    repo: CharlieBr/multi-paxos
+    branch: master
+  region: eu-west-1
